@@ -1,9 +1,10 @@
 import tsplib95
 
 from brute_force import brute_force_tsp
+from held_karp import held_karp
 
-problem = tsplib95.load("../tsplib/ulysses16.tsp")
+problem = tsplib95.load("tsplib/gr17.tsp")
 
-brute_force_cost = brute_force_tsp(problem)
+held_karp_cost = held_karp(problem)
 
-print("Brute-force cost:", brute_force_cost)
+print("Held-Karp cost:", held_karp_cost)
