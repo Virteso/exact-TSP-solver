@@ -2,6 +2,7 @@
 ## Quick
 ```
 git clone https://github.com/Virteso/exact-TSP-solver.git
+cd exact-TSP-solver/
 bash setup.sh venv_name
 ```
 
@@ -9,6 +10,7 @@ bash setup.sh venv_name
 Pull with submodules:  
 ```
 git clone --recurse-submodules https://github.com/Virteso/exact-TSP-solver.git
+cd exact-TSP-solver/
 ```
 
 Make a python virtual environment:  

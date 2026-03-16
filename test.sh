@@ -1,7 +1,9 @@
 #!/bin/bash
 
+mkdir -p results
+
 # System Metadata Logging
-LOG_FILE="algo_bench_$(date +%Y%m%d_%H%M).log"
+LOG_FILE="results/algo_bench_$(date +%Y%m%d_%H%M).log"
 {
     echo "--- Environment Metadata ---"
     echo "Date: $(date)"
@@ -11,11 +13,11 @@ LOG_FILE="algo_bench_$(date +%Y%m%d_%H%M).log"
     echo "----------------------------"
 } > "$LOG_FILE"
 
-# Wait for Load to Settle (Standard for repeatability)
+# Wait for Load to Settle
 echo "Waiting for background noise to drop..."
 while [ $(awk '{print ($1 > 0.5)}' /proc/loadavg) -eq 1 ]; do sleep 2; done
 
-# Background System Monitor (Low Overhead)
+# Background System Monitor (Overhead)
 # Captures: User%, Sys%, Idle%, Context Switches
 echo "type,timestamp,cpu_user,cpu_sys,cpu_idle,context_switches" > "$LOG_FILE"
 (
