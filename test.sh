@@ -2,6 +2,15 @@
 
 mkdir -p results
 
+cleanup() {
+    echo -e "\n[!] Interrupt received. Killing background logger (PID: $LOGGER_PID)..."
+    kill "$LOGGER_PID" 2>/dev/null
+    exit 1
+}
+
+# Trap SIGINT (Ctrl+C) and SIGTERM
+trap cleanup SIGINT SIGTERM
+
 # System Metadata Logging
 LOG_FILE="results/algo_bench_$(date +%Y%m%d_%H%M).log"
 {
