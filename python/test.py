@@ -18,22 +18,38 @@ def test():
 
     problem = tsplib95.load(problem_file)
 
-    match algorithm_choice:
-        case 0:
-            t0 = pc()
-            cost = held_karp(problem)
-            duration = pc() - t0
-        case _:
-            print("Invalid algorithm choice: ", algorithm_choice)
-            return 0
+    algorithm_map = {
+        0: held_karp,
+    }
+
+    if algorithm_choice not in algorithm_map:
+        print("Invalid algorithm choice:", algorithm_choice)
+        return 0
+
+
+    algorithm = algorithm_map[algorithm_choice]
+    # Warmup
+    warmup_runs = 5
+    for _ in range(warmup_runs):
+        algorithm(problem)
+
+    # Measured runs
+    num_runs = 5
+    durations = []
+    for _ in range(num_runs):
+        t0 = pc()
+        cost = algorithm(problem)
+        durations.append(pc() - t0)
+    
+    avg_duration = sum(durations) / num_runs
 
     name = problem_file.split("/")[-1].replace(".tsp", "")
     valid = validate_cost(name, cost)
 
     print(f"Cost: {cost}")
     if valid:
-        print(f"Duration: {duration} seconds")
-        return duration
+        print(f"Duration: {avg_duration} seconds")
+        return avg_duration
     else:
         print("Invalid cost for problem: ", name)
         return 0
