@@ -45,3 +45,10 @@ __pycache__/
 *.pyc
 *.pyo
 *.pyd
+
+# Logs
+*.log
+
+# IDEs
+.vscode/
+.idea/

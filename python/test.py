@@ -1,10 +1,59 @@
 import tsplib95
+import sys
+from time import perf_counter as pc
 
-from brute_force import brute_force_tsp
+# from brute_force import brute_force_tsp
 from held_karp import held_karp
 
-problem = tsplib95.load("tsplib/gr17.tsp")
+# problem = tsplib95.load("tsplib/gr17.tsp")
 
-held_karp_cost = held_karp(problem)
+def test():
+    if len(sys.argv) != 3:
+        print("Usage: python test.py <problem_file> <algorithm_choice>")
+        print("Algorithm choice: 0 = held-karp")
+        return 0
+    
+    problem_file = sys.argv[1]
+    algorithm_choice = int(sys.argv[2])
 
-print("Held-Karp cost:", held_karp_cost)
+    problem = tsplib95.load(problem_file)
+
+    match algorithm_choice:
+        case 0:
+            t0 = pc()
+            cost = held_karp(problem)
+            duration = pc() - t0
+        case _:
+            print("Invalid algorithm choice: ", algorithm_choice)
+            return 0
+
+    name = problem_file.split("/")[-1].replace(".tsp", "")
+    valid = validate_cost(name, cost)
+
+    print(f"Cost: {cost}")
+    if valid:
+        print(f"Duration: {duration} seconds")
+        return duration
+    else:
+        print("Invalid cost for problem: ", name)
+        return 0
+
+
+def validate_cost(problem, test_cost):
+    try:
+        with open("tsplib/solutions", 'r') as f:
+            for line in f:
+                if problem in line:
+                    # Split by colon and clean up whitespace
+                    cost_string = line.split(':')[-1]
+                    cost = int(cost_string.strip())
+                    return test_cost == cost
+    except FileNotFoundError:
+        print("Error: Solution file not found.")
+        return False
+    
+    return False
+
+
+if __name__ == "__main__":
+    test()
