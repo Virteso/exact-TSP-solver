@@ -1,7 +1,8 @@
 import itertools
 
-def brute_force_tsp(problem):
-    nodes = list(problem.get_nodes())
+def brute_force_tsp(lookupTable):
+    n = len(lookupTable)
+    nodes = list(range(n))
 
     start = nodes[0]
     others = nodes[1:]
@@ -9,10 +10,7 @@ def brute_force_tsp(problem):
     best_cost = float("inf")
 
     for perm in itertools.permutations(others):
-        tour = (start,) + perm + (start,)
-
-        cost = sum(problem.get_weight(tour[i], tour[i+1])
-                   for i in range(len(tour)-1))
+        cost = lookupTable[start][perm[0]] + lookupTable[perm[-1]][start] + sum(lookupTable[perm[i]][perm[i+1]] for i in range(n - 2))
 
         if cost < best_cost:
             best_cost = cost
