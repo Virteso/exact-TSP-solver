@@ -1,7 +1,7 @@
 import itertools
 
-def brute_force_tsp(lookupTable):
-    n = len(lookupTable)
+def brute_force_tsp(distanceLookupTable):
+    n = len(distanceLookupTable)
     nodes = list(range(n))
 
     start = nodes[0]
@@ -10,7 +10,7 @@ def brute_force_tsp(lookupTable):
     best_cost = float("inf")
 
     for perm in itertools.permutations(others):
-        cost = lookupTable[start][perm[0]] + lookupTable[perm[-1]][start] + sum(lookupTable[perm[i]][perm[i+1]] for i in range(n - 2))
+        cost = distanceLookupTable[start][perm[0]] + distanceLookupTable[perm[-1]][start] + sum(distanceLookupTable[perm[i]][perm[i+1]] for i in range(n - 2))
 
         if cost < best_cost:
             best_cost = cost

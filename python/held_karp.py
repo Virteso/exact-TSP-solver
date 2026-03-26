@@ -1,13 +1,14 @@
 from itertools import combinations
+# from Typing import List
 
-def held_karp(lookupTable):
-    n = len(lookupTable)
+def held_karp(distanceLookupTable: list[list[int]]) -> int:
+    n = len(distanceLookupTable)
 
     dp = {}
 
     # base cases
     for k in range(1, n):
-        dp[(1 << k, k)] = (lookupTable[0][k], 0)
+        dp[(1 << k, k)] = (distanceLookupTable[0][k], 0)
 
     # build subsets
     for subsetSize in range(2, n):
@@ -18,7 +19,7 @@ def held_karp(lookupTable):
                 prev = bits & ~(1 << k)
 
                 best = min(
-                    (dp[(prev, m)][0] + lookupTable[m][k], m)
+                    (dp[(prev, m)][0] + distanceLookupTable[m][k], m)
                     for m in subset if m != k
                 )
 
@@ -27,7 +28,7 @@ def held_karp(lookupTable):
 
     bits = (1 << n) - 2
     best_cost, parent = min(
-        (dp[(bits, k)][0] + lookupTable[k][0], k)
+        (dp[(bits, k)][0] + distanceLookupTable[k][0], k)
         for k in range(1, n)
     )
 
