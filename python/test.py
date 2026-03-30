@@ -4,6 +4,7 @@ from time import perf_counter as pc
 
 # from brute_force import brute_force_tsp
 from held_karp import held_karp
+from branch_and_bound import branch_and_bound_tsp
 
 # problem = tsplib95.load("tsplib/gr17.tsp")
 
@@ -22,7 +23,7 @@ def build_lookup_table(problem):
 def test():
     if len(sys.argv) != 3:
         print("Usage: python test.py <problem_file> <algorithm_choice>")
-        print("Algorithm choice: 0 = held-karp")
+        print("Algorithm choice: 0 = held-karp, 1 = branc and bound")
         return 0
     
     problemFile = sys.argv[1]
@@ -30,6 +31,7 @@ def test():
 
     algorithmMap = {
         0: held_karp,
+        1: branch_and_bound_tsp,
     }
 
     if algorithmChoice not in algorithmMap:
@@ -44,12 +46,12 @@ def test():
     lookupTable = build_lookup_table(problem)
 
     # Warmup
-    warmupRuns = 5
+    warmupRuns = 0
     for _ in range(warmupRuns):
         algorithm(lookupTable)
 
     # Measured runs
-    numRuns = 5
+    numRuns = 1
     durations = []
     for _ in range(numRuns):
         t0 = pc()
