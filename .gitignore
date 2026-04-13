@@ -51,3 +51,6 @@ build/
 
 # Force include qsopt
 !qsopt.*
+
+# CPLEX
+cplex/
