@@ -1,9 +1,9 @@
 import heapq
 from typing import List
-from one_tree import compute_one_tree_bound, compute_mst_weight, held_karp_lower_bound
+from one_tree import compute_mst_weight
 from lin_ker import lin_kernighan_tsp
 
-def branch_and_bound_tsp(lookupTable: List[List[int]]) -> int: 
+def branch_and_bound_tsp(lookupTable: List[List[int]], verbose: bool = False) -> int: 
 	"""
 	Branch and bound algorithm for TSP.
 	Uses lower bound estimation to prune the search tree.
@@ -17,6 +17,9 @@ def branch_and_bound_tsp(lookupTable: List[List[int]]) -> int:
 		return 0
 
 	best_cost = lin_kernighan_tsp(lookupTable)
+	
+	# Map to store best costs for each state (visited_mask, current_node)
+	# state_best_costs = {}
 	
 	# Priority queue: (lower_bound, current_cost, path_indices, visited_mask)
 	# Start from node 0
@@ -33,10 +36,20 @@ def branch_and_bound_tsp(lookupTable: List[List[int]]) -> int:
 	while pq:
 		lower_bound, current_cost, current_node, visited_mask = heapq.heappop(pq)
 		
-		# Pruning: if lower bound exceeds best found, skip this branch
+		# state_key = (visited_mask, current_node)
+		
+		# Pruning: if lower bound exceeds best found globally
 		if lower_bound >= best_cost:
 			continue
-		print(f"lower bound: {lower_bound}, best: {best_cost}")
+		
+		# Pruning: if lower bound exceeds best found for this state
+		# if state_key in state_best_costs and lower_bound >= state_best_costs[state_key]:
+		# 	continue
+		
+		# Record this state with its lower bound
+		# state_best_costs[state_key] = lower_bound
+		if (verbose):
+			print(f"lower bound: {lower_bound}, best: {best_cost}")
 
 		unvisited = [
 			next_node
@@ -49,6 +62,9 @@ def branch_and_bound_tsp(lookupTable: List[List[int]]) -> int:
 			# Try path: current_node -> node -> 0
 			cost = current_cost + lookupTable[current_node][node] + lookupTable[node][0]
 			best_cost = min(best_cost, cost)
+			# Update state_best_costs for this state
+			# if state_key not in state_best_costs or cost < state_best_costs[state_key]:
+			# 	state_best_costs[state_key] = cost
 			continue
 
 		

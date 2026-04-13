@@ -1,6 +1,6 @@
 import itertools
 
-def brute_force_tsp(distanceLookupTable):
+def brute_force_tsp(distanceLookupTable, verbose: bool = False):
     n = len(distanceLookupTable)
     nodes = list(range(n))
 
