@@ -1,7 +1,6 @@
 from itertools import combinations
-# from Typing import List
 
-def held_karp(distanceLookupTable: list[list[int]], verbose: bool = False) -> int:
+def held_karp(distanceLookupTable: list[list[int]], bool = False) -> int:
     n = len(distanceLookupTable)
 
     dp = {}

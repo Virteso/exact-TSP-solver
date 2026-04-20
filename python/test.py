@@ -3,12 +3,9 @@ import sys
 from time import perf_counter as pc
 import threading
 
-# from brute_force import brute_force_tsp
 from held_karp import held_karp
 from branch_and_bound import branch_and_bound_tsp
 from cplex_test import cplex_tsp
-
-# problem = tsplib95.load("tsplib/gr17.tsp")
 
 def run_with_timeout(func, args, timeout=None):
     """Run a function with an optional timeout"""
