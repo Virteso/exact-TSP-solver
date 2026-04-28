@@ -16,6 +16,7 @@ class SubtourCallback:
 
         # Find subtours
         visited = [False] * n
+        all_subtours = []
         
         for start_node in range(n):
             if visited[start_node]:
@@ -35,28 +36,30 @@ class SubtourCallback:
                     if sol[curr * n + j] > 0.5:
                         next = j
                         break
-                
                 if next == -1:
-                    break
+                    continue
                 curr = next
 
-            # Eliminate subtour
-            if len(tour) < n and len(tour) > 0:
-                # Create cut: sum(x_ij for i,j in subtour) <= |S| - 1
-                indices = [i * n + j 
-                        for i in tour 
-                        for j in tour 
-                        if i != j]
-                
-                # Reject solution and provide cut
-                context.reject_candidate(
-                    constraints=[cplex.SparsePair(ind=indices, val=[1.0] * len(indices))],
-                    senses="L",
-                    rhs=[float(len(tour) - 1)]
-                )
+            all_subtours.append(tour)
 
-                # Reject only 1 subtour
-                break
+        if len(all_subtours) == 1:
+            return
+
+        # Eliminate subtours
+        for tour in all_subtours:
+            # Create cut: sum(x_ij for i,j in subtour) <= |S| - 1
+            indices = [i * n + j 
+                    for i in tour 
+                    for j in tour 
+                    if i != j]
+            
+            # Reject solution and provide cut
+            context.reject_candidate(
+                constraints=[cplex.SparsePair(ind=indices, val=[1.0] * len(indices))],
+                senses="L",
+                rhs=[float(len(tour) - 1)]
+            )
+
 
 def cplex_tsp(dist_matrix, verbose = None) -> float:
     n = len(dist_matrix)

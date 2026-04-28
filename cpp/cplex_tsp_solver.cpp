@@ -29,61 +29,56 @@ public:
         // We only want to execute this logic when CPLEX finds a new integer candidate
         if (!context.inCandidate()) return;
 
-        
         // Extract the current values of the variables from the candidate context
-        std::vector<std::vector<double>> sol(n, std::vector<double>(n, 0.0));
+        std::vector<int> adj(n, -1);
         for (int i = 0; i < n; ++i) {
             for (int j = 0; j < n; ++j) {
-                if (i != j) {
-                    sol[i][j] = context.getCandidatePoint(x[i][j]);
+                if (i != j && context.getCandidatePoint(x[i][j]) > 0.5) {
+                    adj[i] = j;
                 }
             }
         }
         
         // Find cycles in the current integer solution
         std::vector<bool> visited(n, false);
-        for (int i = 0; i < n; ++i) {
-            if (visited[i]) continue;
+        std::vector<std::vector<int>> tours;
 
-            std::vector<int> tour;
-            int curr = i;
-            
-            // Traverse the path for the current subtour
-            while (!visited[curr]) {
-                visited[curr] = true;
-                tour.push_back(curr);
-                
-                int next = -1;
-                for (int j = 0; j < n; ++j) {
-                    if (curr != j && sol[curr][j] > 0.5) {
-                        next = j;
-                        break;
+        for (int i = 0; i < n; i++) {
+            if (!visited[i] && adj[i] != -1) {
+                std::vector<int> tour;
+                int curr = i;
+                while (!visited[curr]) {
+                    visited[curr] = true;
+                    tour.push_back(curr);
+                    curr = adj[curr];
+                    if (curr == -1) break; // Should not happen in valid TSP
+                }
+                tours.push_back(tour);
+            }
+        }
+
+        if (tours.size() == 1)
+            return;
+
+        for (auto &tour : tours) {
+        // If the cycle length is less than n, we found an illegal subtour.
+        int cycle_length = static_cast<int>(tour.size());
+            IloEnv env = context.getEnv();
+            IloExpr expr(env);
+            for (int a = 0; a < cycle_length; ++a) {
+                for (int b = 0; b < cycle_length; ++b) {
+                    if (tour[a] != tour[b]) {
+                        expr += x[tour[a]][tour[b]];
                     }
                 }
-                
-                if (next == -1) break; // Failsafe
-                curr = next;
             }
             
-            // If the cycle length is less than n, we found an illegal subtour.
-            if (tour.size() > 0 && tour.size() < static_cast<size_t>(n)) {
-                IloEnv env = context.getEnv();
-                IloExpr expr(env);
-                for (size_t a = 0; a < tour.size(); ++a) {
-                    for (size_t b = 0; b < tour.size(); ++b) {
-                        if (tour[a] != tour[b]) {
-                            expr += x[tour[a]][tour[b]];
-                        }
-                    }
-                }
-                
-                // Reject the candidate and inject the cut
-                context.rejectCandidate(expr <= static_cast<int>(tour.size()) - 1);
-                
-                expr.end();
-                // Reject only 1 subtour
-                break;
-            }
+            // Reject the candidate and inject the cut
+            context.rejectCandidate(expr <= cycle_length - 1);
+            
+            expr.end();
+            // // Reject only 1 subtour
+            // break;
         }
     }
     
