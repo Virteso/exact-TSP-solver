@@ -12,7 +12,7 @@ find_path(CPLEX_INCLUDE_DIRS
 
 find_library(ILOCPLEX_LIBRARY
     NAMES ilocplex
-    PATHS ${CPLEX_ROOT_DIR}/cplex/lib/x86-64_linux/static_pic
+    PATHS ${CPLEX_ROOT_DIR}/cplex/lib/*/static_pic
 )
 
 find_library(CPLEX_LIBRARY
