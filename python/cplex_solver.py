@@ -10,46 +10,53 @@ class SubtourCallback:
         if not context.in_candidate():
             return
 
-        # Get the current solution (the x_ij values)
+        # Get current solution (the x_ij values)
         n = self.n
         sol = context.get_candidate_point()
 
         # Find subtours
         visited = [False] * n
-        all_subtours = []
         
         for start_node in range(n):
-            if not visited[start_node]:
-                tour = []
-                curr = start_node
-                while not visited[curr]:
-                    visited[curr] = True
-                    tour.append(curr)
-                    # Find next node in path: where x[curr][j] == 1
-                    for j in range(n):
-                        if curr == j: continue
-                        # Variables were added in order: i*n + j
-                        if sol[curr * n + j] > 0.5:
-                            curr = j
-                            break
-                all_subtours.append(tour)
+            if visited[start_node]:
+                continue
 
-        # 3. If there are multiple loops, it's not a single tour!
-        if len(all_subtours) > 1:
-            for tour in all_subtours:
-                # Create the cut: sum(x_ij for i,j in subtour) <= |S| - 1
-                indices = []
-                for i in tour:
-                    for j in tour:
-                        if i != j:
-                            indices.append(i * n + j)
+            # New subtour
+            tour = []
+            curr = start_node
+            while not visited[curr]:
+                visited[curr] = True
+                tour.append(curr)
+                # Find next node in path: where x[curr][j] == 1
+                next = -1
+                for j in range(n):
+                    if curr == j: continue
+                    # Variables were added in order: i*n + j
+                    if sol[curr * n + j] > 0.5:
+                        next = j
+                        break
                 
-                # Reject the solution and provide the cut
+                if next == -1:
+                    break
+                curr = next
+
+            # Eliminate subtour
+            if len(tour) < n and len(tour) > 0:
+                # Create cut: sum(x_ij for i,j in subtour) <= |S| - 1
+                indices = [i * n + j 
+                        for i in tour 
+                        for j in tour 
+                        if i != j]
+                
+                # Reject solution and provide cut
                 context.reject_candidate(
                     constraints=[cplex.SparsePair(ind=indices, val=[1.0] * len(indices))],
                     senses="L",
                     rhs=[float(len(tour) - 1)]
                 )
+
+                # Reject only 1 subtour
+                break
 
 def cplex_tsp(dist_matrix, verbose = None) -> float:
     n = len(dist_matrix)
@@ -83,7 +90,7 @@ def cplex_tsp(dist_matrix, verbose = None) -> float:
 
     # MANDATORY: To use Generic Callbacks with Lazy Constraints,
     # we must disable some preprocessing that changes the model structure.
-    prob.parameters.preprocessing.linear.set(0)
+    prob.parameters.preprocessing.linear.set(1)
 
     # Set exact optimality tolerances
     prob.parameters.mip.tolerances.mipgap.set(0.0)

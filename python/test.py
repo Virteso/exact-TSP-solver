@@ -3,9 +3,10 @@ import sys
 from time import perf_counter as pc
 import threading
 
+from brute_force import brute_force_tsp
 from held_karp import held_karp
 from branch_and_bound import branch_and_bound_tsp
-from cplex_test import cplex_tsp
+from cplex_solver import cplex_tsp
 
 def run_with_timeout(func, args, timeout=None):
     """Run a function with an optional timeout"""
@@ -61,9 +62,10 @@ def test():
     verbose = int(sys.argv[4]) if len(sys.argv) > 4 else 0
 
     algorithmMap = {
-        0: held_karp,
-        1: branch_and_bound_tsp,
-        2: cplex_tsp
+        0: brute_force_tsp,
+        1: held_karp,
+        2: branch_and_bound_tsp,
+        3: cplex_tsp
     }
 
     if algorithmChoice not in algorithmMap:
@@ -72,7 +74,7 @@ def test():
 
     # Get algorithm function based on user choice
     algorithm = algorithmMap[algorithmChoice]
-    algorithm_name = ["held-karp", "branch-and-bound", "cplex"][algorithmChoice]
+    algorithm_name = ["brute-force", "held-karp", "branch-and-bound", "cplex"][algorithmChoice]
 
     # Precompute the lookup table for the problem
     problem = tsplib95.load(problemFile)
