@@ -1,5 +1,6 @@
 import cplex
 from cplex.callbacks import Context
+from lin_ker import lin_kernighan_tsp
 
 class SubtourCallback:
     def __init__(self, n):
@@ -98,6 +99,28 @@ def cplex_tsp(dist_matrix, verbose = None) -> float:
     # Set exact optimality tolerances
     prob.parameters.mip.tolerances.mipgap.set(0.0)
     prob.parameters.mip.tolerances.absmipgap.set(0.0)
+
+    # Get upper bound and tour from Lin-Kernighan heuristic
+    lk_tour, lk_bound = lin_kernighan_tsp(dist_matrix, max_iterations=1000, random_restarts=2)
+    if verbose:
+        print(f"Lin-Kernighan upper bound: {lk_bound}")
+    
+    # Add MIP start with Lin-Kernighan solution
+    if lk_bound > 0 and lk_tour is not None:
+        # Convert tour to x_ij variables: x[i][j] = 1 if edge (i,j) is in tour
+        mip_start = []
+        for i in range(n):
+            for j in range(n):
+                # Check if edge (i,j) is in the tour
+                in_tour = False
+                for t in range(n):
+                    if lk_tour[t] == i and lk_tour[(t + 1) % n] == j:
+                        in_tour = True
+                        break
+                mip_start.append(1.0 if in_tour else 0.0)
+        
+        # Add as MIP start
+        prob.MIP_starts.add(mip_start, prob.MIP_starts.effort_level.auto)
 
     # 4. Register the Generic Callback
     # We tell CPLEX to only call us when it finds a potential integer solution

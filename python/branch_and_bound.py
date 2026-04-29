@@ -17,6 +17,9 @@ def branch_and_bound_tsp(lookupTable: List[List[int]], verbose: bool = False) ->
 		return 0
 
 	best_cost = lin_kernighan_tsp(lookupTable)
+	# lin_kernighan_tsp now returns (tour, cost)
+	if isinstance(best_cost, tuple):
+		best_cost = best_cost[1]
 	
 	# Map to store best costs for each state (visited_mask, current_node)
 	# state_best_costs = {}

@@ -1,6 +1,7 @@
 #include <iostream>
 #include <vector>
 #include <cmath>
+#include "lin_kernighan.h"
 
 using DistMatrix = std::vector<std::vector<int>>;
 
@@ -160,6 +161,39 @@ long long cplex_tsp_solver(const DistMatrix& dist, bool verbose = false) {
         // We instruct CPLEX to trigger this callback ONLY in the 'Candidate' context
         SubtourCallback subtourCb(x, n);
         cplex.use(&subtourCb, IloCplex::Callback::Context::Id::Candidate);
+
+        // 4. Get upper bound and tour from Lin-Kernighan heuristic
+        auto [lk_tour, lk_bound] = lin_kernighan_tsp_with_tour(dist, 1000, 5);
+        if (verbose) {
+            std::cout << "Lin-Kernighan upper bound: " << lk_bound << std::endl;
+        }
+        
+        // Provide MIP start with Lin-Kernighan solution as initial incumbent
+        if (lk_bound > 0 && !lk_tour.empty()) {
+            IloNumVarArray startVar(env);
+            IloNumArray startVal(env);
+            
+            // Convert the tour to x[i][j] variables
+            // Tour is a permutation of nodes, so x[lk_tour[i]][lk_tour[i+1]] = 1
+            for (int i = 0; i < n; ++i) {
+                for (int j = 0; j < n; ++j) {
+                    startVar.add(x[i][j]);
+                    // Check if edge (i,j) is in the tour
+                    bool in_tour = false;
+                    for (int t = 0; t < n; ++t) {
+                        if (lk_tour[t] == i && lk_tour[(t + 1) % n] == j) {
+                            in_tour = true;
+                            break;
+                        }
+                    }
+                    startVal.add(in_tour ? 1 : 0);
+                }
+            }
+            
+            cplex.addMIPStart(startVar, startVal, IloCplex::MIPStartEffort::MIPStartAuto, "LK_solution");
+            startVar.end();
+            startVal.end();
+        }
 
         // Solve the Model
         if (cplex.solve()) {

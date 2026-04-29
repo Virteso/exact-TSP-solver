@@ -48,18 +48,18 @@ def build_lookup_table(problem):
 
 def test():
     if len(sys.argv) < 3 or len(sys.argv) > 5:
-        print("Usage: python test.py <problem_file> <algorithm_choice> [timeout] [verbose]")
-        print("Algorithm choice: 0 = held-karp, 1 = branch and bound, 2 = DFJ")
-        print("timeout: optional timeout in seconds (default: None)")
+        print("Usage: python test.py <problem_file> <algorithm_choice> [verbose] [timeout]")
+        print("Algorithm choice: 0 = brute force, 1 = held-karp, 2 = branch and bound, 3 = CPLEX DFJ")
         print("verbose: optional flag (0 or 1) for verbose output (default: 0)")
+        print("timeout: optional timeout in seconds (default: None)")
         return 0
     
     problemFile = sys.argv[1]
     algorithmChoice = int(sys.argv[2])
-    timeout = float(sys.argv[3]) if len(sys.argv) > 3 else None
+    verbose = int(sys.argv[3]) if len(sys.argv) > 3 else 0
+    timeout = float(sys.argv[4]) if len(sys.argv) > 4 else None
     if timeout == 0:
         timeout = None
-    verbose = int(sys.argv[4]) if len(sys.argv) > 4 else 0
 
     algorithmMap = {
         0: brute_force_tsp,

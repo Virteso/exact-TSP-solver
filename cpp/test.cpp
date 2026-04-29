@@ -114,23 +114,23 @@ bool validate_cost(const std::string& problem_name, long long cost) {
 
 int main(int argc, char* argv[]) {
     if (argc < 3 || argc > 5) {
-        std::cerr << "Usage: " << argv[0] << " <problem_file> <algorithm_choice> [timeout] [verbose]\n";
-        std::cerr << "Algorithm choice: 0 = held-karp, 1 = branch and bound, 2 = brute force, 3 = cplex\n";
-        std::cerr << "timeout: optional timeout in seconds (default: None)\n";
+        std::cerr << "Usage: " << argv[0] << " <problem_file> <algorithm_choice> [verbose] [timeout]\n";
+        std::cerr << "Algorithm choice: 0 = brute force, 1 = held-karp, 2 = branch and bound, 3 = cplex\n";
         std::cerr << "verbose: optional flag (0 or 1) for verbose output (default: 0)\n";
+        std::cerr << "timeout: optional timeout in seconds (default: None)\n";
         return 1;
     }
     
     std::string problem_file = argv[1];
     int algorithm_choice = std::stoi(argv[2]);
-    bool verbose = (argc > 3) ? (std::stoi(argv[4]) != 0) : false;
-    double timeout = (argc > 4) ? std::stod(argv[3]) : 0.0;
+    bool verbose = (argc > 3) ? (std::stoi(argv[3]) != 0) : false;
+    double timeout = (argc > 4) ? std::stod(argv[4]) : 0.0;
     
     // Algorithm map with names
     std::map<int, std::string> algorithm_names = {
-        {0, "held-karp"},
-        {1, "branch-and-bound"},
-        {2, "brute-force"},
+        {0, "brute-force"},
+        {1, "held-karp"},
+        {2, "branch-and-bound"},
         {3, "cplex"}
     };
     
@@ -154,9 +154,9 @@ int main(int argc, char* argv[]) {
         }
         
         std::map<int, std::function<AlgorithmResult(const DistMatrix&, bool, double)>> algorithm_map = {
-            {0, run_held_karp},
-            {1, run_branch_and_bound},
-            {2, run_brute_force},
+            {0, run_brute_force},
+            {1, run_held_karp},
+            {2, run_branch_and_bound},
             {3, run_cplex}
         };
         

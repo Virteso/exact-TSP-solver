@@ -15,13 +15,13 @@ find_package(CPLEX QUIET)
 # Main executable
 add_executable(test_tsp
     test.cpp
+    tsplib_parser.cpp
+    brute_force.cpp
     held_karp.cpp
     branch_and_bound.cpp
     lin_kernighan.cpp
     one_tree.cpp
-    brute_force.cpp
     cplex_tsp_solver.cpp
-    tsplib_parser.cpp
 )
 
 target_include_directories(test_tsp PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
