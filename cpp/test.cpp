@@ -2,7 +2,6 @@
 #include <string>
 #include <chrono>
 #include <fstream>
-#include <future>
 #include <cstring>
 #include <map>
 #include <functional>
@@ -19,64 +18,44 @@ struct AlgorithmResult {
     bool timed_out;
 };
 
-template<typename Func>
-AlgorithmResult run_with_timeout(Func func, double timeout_seconds) {
+AlgorithmResult run_held_karp(const DistMatrix& dist, bool verbose, double timeout_seconds) {
     AlgorithmResult result{-1, 0.0, false};
     auto start = std::chrono::high_resolution_clock::now();
-    
-    if (timeout_seconds <= 0) {
-        // No timeout - run directly
-        result.cost = func();
-        auto end = std::chrono::high_resolution_clock::now();
-        result.duration = std::chrono::duration<double>(end - start).count();
-        result.timed_out = false;
-        return result;
-    }
-    
-    // Run with timeout using future
-    auto future = std::async(std::launch::async, func);
-    auto timeout_duration = std::chrono::duration<double>(timeout_seconds);
-    
-    auto status = future.wait_for(timeout_duration);
+    result.cost = held_karp(dist, verbose, timeout_seconds);
     auto end = std::chrono::high_resolution_clock::now();
     result.duration = std::chrono::duration<double>(end - start).count();
-    
-    if (status == std::future_status::timeout) {
-        result.timed_out = true;
-        result.cost = -1;
-    } else if (status == std::future_status::ready) {
-        result.cost = future.get();
-        result.timed_out = false;
-    } else {
-        result.timed_out = true;
-        result.cost = -1;
-    }
-    
+    result.timed_out = (result.cost == -1);
     return result;
 }
 
-AlgorithmResult run_held_karp(const DistMatrix& dist, bool verbose, double timeout_seconds) {
-    return run_with_timeout([&dist, verbose]() {
-        return held_karp(dist, verbose);
-    }, timeout_seconds);
-}
-
 AlgorithmResult run_branch_and_bound(const DistMatrix& dist, bool verbose, double timeout_seconds) {
-    return run_with_timeout([&dist, verbose]() {
-        return branch_and_bound_tsp(dist, verbose);
-    }, timeout_seconds);
+    AlgorithmResult result{-1, 0.0, false};
+    auto start = std::chrono::high_resolution_clock::now();
+    result.cost = branch_and_bound_tsp(dist, verbose, timeout_seconds);
+    auto end = std::chrono::high_resolution_clock::now();
+    result.duration = std::chrono::duration<double>(end - start).count();
+    result.timed_out = (result.cost == -1);
+    return result;
 }
 
 AlgorithmResult run_brute_force(const DistMatrix& dist, bool verbose, double timeout_seconds) {
-    return run_with_timeout([&dist, verbose]() {
-        return brute_force_tsp(dist, verbose);
-    }, timeout_seconds);
+    AlgorithmResult result{-1, 0.0, false};
+    auto start = std::chrono::high_resolution_clock::now();
+    result.cost = brute_force_tsp(dist, verbose, timeout_seconds);
+    auto end = std::chrono::high_resolution_clock::now();
+    result.duration = std::chrono::duration<double>(end - start).count();
+    result.timed_out = (result.cost == -1);
+    return result;
 }
 
 AlgorithmResult run_cplex(const DistMatrix& dist, bool verbose, double timeout_seconds) {
-    return run_with_timeout([&dist, verbose]() {
-        return cplex_tsp_solver(dist, verbose);
-    }, timeout_seconds);
+    AlgorithmResult result{-1, 0.0, false};
+    auto start = std::chrono::high_resolution_clock::now();
+    result.cost = cplex_tsp_solver(dist, verbose, timeout_seconds);
+    auto end = std::chrono::high_resolution_clock::now();
+    result.duration = std::chrono::duration<double>(end - start).count();
+    result.timed_out = (result.cost == -1);
+    return result;
 }
 
 bool validate_cost(const std::string& problem_name, long long cost) {

@@ -9,6 +9,6 @@ using DistMatrix = std::vector<std::vector<int>>;
  * Branch and Bound algorithm for TSP
  * Uses lower bound estimation to prune the search tree
  */
-long long branch_and_bound_tsp(const DistMatrix& dist_matrix, bool verbose = false);
+long long branch_and_bound_tsp(const DistMatrix& dist_matrix, bool verbose = false, double time_limit = 0.0);
 
 #endif

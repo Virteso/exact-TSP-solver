@@ -1,7 +1,11 @@
 #include <iostream>
 #include <vector>
 #include <cmath>
-#include "lin_kernighan.h"
+
+#include "time_checker.h"
+#include "lkh_solver.h"
+
+#define MIP_INT_LB 0.8
 
 using DistMatrix = std::vector<std::vector<int>>;
 
@@ -27,21 +31,22 @@ public:
     // The invoke method is called by CPLEX during the branch-and-bound process
     virtual void invoke(const IloCplex::Callback::Context& context) override {
         
-        // We only want to execute this logic when CPLEX finds a new integer candidate
-        if (!context.inCandidate()) return;
+        // Help CPLEX only with relaxation and integer solutions
+        if (!context.inCandidate() && !context.inRelaxation()) return;
 
         // Extract the current values of the variables from the candidate context
-        std::vector<int> adj(n, -1);
+        int adj[n];
         for (int i = 0; i < n; ++i) {
+            adj[i] = -1;
             for (int j = 0; j < n; ++j) {
-                if (i != j && context.getCandidatePoint(x[i][j]) > 0.5) {
+                if (i != j && context.getCandidatePoint(x[i][j]) > MIP_INT_LB) {
                     adj[i] = j;
                 }
             }
         }
         
         // Find cycles in the current integer solution
-        std::vector<bool> visited(n, false);
+        bool visited[n];
         std::vector<std::vector<int>> tours;
 
         for (int i = 0; i < n; i++) {
@@ -58,12 +63,12 @@ public:
             }
         }
 
+        // A single tour solution is the correct one
         if (tours.size() == 1)
             return;
 
         for (auto &tour : tours) {
-        // If the cycle length is less than n, we found an illegal subtour.
-        int cycle_length = static_cast<int>(tour.size());
+            int cycle_length = static_cast<int>(tour.size());
             IloEnv env = context.getEnv();
             IloExpr expr(env);
             for (int a = 0; a < cycle_length; ++a) {
@@ -78,8 +83,6 @@ public:
             context.rejectCandidate(expr <= cycle_length - 1);
             
             expr.end();
-            // // Reject only 1 subtour
-            // break;
         }
     }
     
@@ -87,15 +90,28 @@ public:
 };
 
 
-long long cplex_tsp_solver(const DistMatrix& dist, bool verbose = false) {
+long long cplex_tsp_solver(const DistMatrix& dist, bool verbose, double time_limit) {
     int n = dist.size();
     
     // Trivial cases
     if (n <= 1) return 0;
     if (n == 2) return dist[0][1] + dist[1][0];
 
+    TimeChecker tc(time_limit);
+    
+    double lk_time_limit;
+    if (time_limit > 0.0)
+        lk_time_limit = std::min(time_limit, std::max(10.0, n / 20.0));
+    else
+        lk_time_limit = std::max(10, n / 20);
+
+    int lk_tour[n];
+    long long optimal_cost = lkh_solve(dist, lk_tour, n, 5, 10, 5, 1, lk_time_limit);
+
+    if (verbose)
+        std::cout << "LKH upper bound: " << optimal_cost << std::endl;
+
     IloEnv env;
-    long long optimal_cost = -1;
 
     try {
         IloModel model(env);
@@ -106,22 +122,21 @@ long long cplex_tsp_solver(const DistMatrix& dist, bool verbose = false) {
             x[i] = IloNumVarArray(env, n, 0, 1, ILOBOOL);
         }
 
-        // 1. Objective Function: Minimize sum(dist[i][j] * x[i][j])
+        // Minimize sum(dist[i][j] * x[i][j])
         IloExpr objExpr(env);
         for (int i = 0; i < n; ++i) {
-            for (int j = 0; j < n; ++j) {
-                if (i != j) {
-                    objExpr += dist[i][j] * x[i][j];
-                } else {
-                    // Prevent self-loops explicitly
-                    model.add(x[i][j] == 0); 
-                }
+            // Prevent self-loops explicitly
+            model.add(x[i][i] == 0);
+            // Add edge costs
+            for (int j = 0; j < i; ++j) {
+                    objExpr += dist[i][j] * x[i][j];    
+                    objExpr += dist[j][i] * x[j][i];    
             }
         }
         model.add(IloMinimize(env, objExpr));
         objExpr.end();
 
-        // 2. Degree Constraints (Assignment constraints)
+        // Degree Constraints (Only 1 edge in and only 1 edge out)
         for (int i = 0; i < n; ++i) {
             IloExpr outDegree(env);
             IloExpr inDegree(env);
@@ -154,22 +169,21 @@ long long cplex_tsp_solver(const DistMatrix& dist, bool verbose = false) {
         // the optimal solution assuming the relaxed model is the whole story.
         cplex.setParam(IloCplex::Param::Preprocessing::Reduce, 1); // 1 = Primal reductions only
 
+        // Absolutely optimal results
         cplex.setParam(IloCplex::Param::MIP::Tolerances::MIPGap, 0.0);
         cplex.setParam(IloCplex::Param::MIP::Tolerances::AbsMIPGap, 0.0);
 
-        // 3. Register the Context Callback
-        // We instruct CPLEX to trigger this callback ONLY in the 'Candidate' context
+        // Register the Context Callback
         SubtourCallback subtourCb(x, n);
         cplex.use(&subtourCb, IloCplex::Callback::Context::Id::Candidate);
 
-        // 4. Get upper bound and tour from Lin-Kernighan heuristic
-        auto [lk_tour, lk_bound] = lin_kernighan_tsp_with_tour(dist, 1000, 5);
-        if (verbose) {
-            std::cout << "Lin-Kernighan upper bound: " << lk_bound << std::endl;
+        // Give CPLEX whatever time is left
+        if (time_limit > 0.0) {
+            cplex.setParam(IloCplex::Param::TimeLimit, tc.remaining());
         }
         
         // Provide MIP start with Lin-Kernighan solution as initial incumbent
-        if (lk_bound > 0 && !lk_tour.empty()) {
+        if (optimal_cost > 0) {
             IloNumVarArray startVar(env);
             IloNumArray startVal(env);
             
@@ -183,7 +197,6 @@ long long cplex_tsp_solver(const DistMatrix& dist, bool verbose = false) {
                     for (int t = 0; t < n; ++t) {
                         if (lk_tour[t] == i && lk_tour[(t + 1) % n] == j) {
                             in_tour = true;
-                            break;
                         }
                     }
                     startVal.add(in_tour ? 1 : 0);
@@ -193,6 +206,10 @@ long long cplex_tsp_solver(const DistMatrix& dist, bool verbose = false) {
             cplex.addMIPStart(startVar, startVal, IloCplex::MIPStartEffort::MIPStartAuto, "LK_solution");
             startVar.end();
             startVal.end();
+
+            // Disable cplex heuristics with a good upper bound
+            cplex.setParam(IloCplex::Param::MIP::Strategy::RINSHeur, -1);
+            // cplex.setParam(IloCplex::Param::Emphasis::MIP, 3);
         }
 
         // Solve the Model
@@ -219,7 +236,7 @@ long long cplex_tsp_solver(const DistMatrix& dist, bool verbose = false) {
 
 #else
 
-long long cplex_tsp_solver(const DistMatrix& dist, bool verbose) {
+long long cplex_tsp_solver(const DistMatrix& dist, bool verbose, double time_limit) {
     std::cerr << "CPLEX not available. Please link against CPLEX libraries." << std::endl;
     return -1;
 }

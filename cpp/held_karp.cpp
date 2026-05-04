@@ -1,12 +1,16 @@
 #include "held_karp.h"
+#include "time_checker.h"
 #include <algorithm>
 #include <climits>
 #include <vector>
+#include <iostream>
 
-int held_karp(const DistMatrix& dist, bool verbose) {
+int held_karp(const DistMatrix& dist, bool verbose, double time_limit) {
     int n = dist.size();
     if (n <= 1) return 0;
     if (n == 2) return dist[0][1] + dist[1][0];
+    
+    TimeChecker tc(time_limit);
     
     // dp[mask][k] = minimum cost to visit all nodes in mask ending at node k
     // mask represents a subset of nodes {1, 2, ..., n-1}
@@ -21,6 +25,13 @@ int held_karp(const DistMatrix& dist, bool verbose) {
     
     // Build subsets by size
     for (int subset_size = 2; subset_size < n; subset_size++) {
+        if (tc.time_exceeded()) {
+            if (verbose) {
+                std::cout << "Held-Karp timed out after " << tc.elapsed() << "s at subset_size=" << subset_size << std::endl;
+            }
+            return -1;
+        }
+        
         // Iterate through all masks with exactly subset_size bits set
         for (int mask = 1; mask < (1 << (n - 1)); mask++) {
             if (__builtin_popcount(mask) != subset_size) continue;
@@ -47,6 +58,13 @@ int held_karp(const DistMatrix& dist, bool verbose) {
                 }
             }
         }
+    }
+    
+    if (tc.time_exceeded()) {
+        if (verbose) {
+            std::cout << "Held-Karp timed out after " << tc.elapsed() << "s at final step" << std::endl;
+        }
+        return -1;
     }
     
     // Final: connect back to node 0

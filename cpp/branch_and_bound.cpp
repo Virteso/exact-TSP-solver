@@ -1,10 +1,12 @@
-#include "branch_and_bound.h"
-#include "one_tree.h"
-#include "lin_kernighan.h"
 #include <queue>
 #include <limits>
 #include <algorithm>
 #include <iostream>
+
+#include "branch_and_bound.h"
+#include "one_tree.h"
+#include "lkh_solver.h"
+#include "time_checker.h"
 
 struct BranchNode {
     long long lower_bound;
@@ -29,14 +31,23 @@ std::vector<std::vector<int>> build_submatrix(const DistMatrix& dist,
     return sub;
 }
 
-long long branch_and_bound_tsp(const DistMatrix& dist_matrix, bool verbose) {
+long long branch_and_bound_tsp(const DistMatrix& dist_matrix, bool verbose, double time_limit) {
     int n = dist_matrix.size();
     
     if (n <= 1) return 0;
     if (n == 2) return dist_matrix[0][1] + dist_matrix[1][0];
     
+    TimeChecker tc(time_limit);
+    
     // Get initial upper bound from heuristic
-    long long best_cost = lin_kernighan_tsp(dist_matrix, 1000, 1);
+    double lk_time_limit;
+    if (time_limit > 0.0)
+        lk_time_limit = std::min(time_limit, std::max(10.0, n / 20.0));
+    else
+        lk_time_limit = std::max(10, n / 20);
+
+    int lk_tour[n];
+    long long best_cost = lkh_solve(dist_matrix, lk_tour, n, 5, 10, 5, 1, lk_time_limit);
     
     // Priority queue: min heap by lower bound
     std::priority_queue<BranchNode, std::vector<BranchNode>, std::greater<BranchNode>> pq;
@@ -46,6 +57,13 @@ long long branch_and_bound_tsp(const DistMatrix& dist_matrix, bool verbose) {
     int nodes_explored = 0;
     
     while (!pq.empty()) {
+        if (tc.time_exceeded()) {
+            if (verbose) {
+                std::cout << "Branch-and-bound timed out after " << tc.elapsed() << "s, best: " << best_cost << std::endl;
+            }
+            return best_cost;
+        }
+        
         BranchNode node = pq.top();
         pq.pop();
         

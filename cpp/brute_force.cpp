@@ -1,12 +1,15 @@
 #include "brute_force.h"
+#include "time_checker.h"
 #include <algorithm>
 #include <iostream>
 #include <climits>
 
-long long brute_force_tsp(const DistMatrix& dist, bool verbose) {
+long long brute_force_tsp(const DistMatrix& dist, bool verbose, double time_limit) {
     int n = dist.size();
     if (n == 0) return 0;
     if (n == 1) return 0;
+    
+    TimeChecker tc(time_limit);
     
     // Create a vector of nodes excluding the first node
     std::vector<int> nodes;
@@ -20,6 +23,13 @@ long long brute_force_tsp(const DistMatrix& dist, bool verbose) {
     // Try all permutations
     std::sort(nodes.begin(), nodes.end());
     do {
+        if (tc.time_exceeded()) {
+            if (verbose) {
+                std::cout << "Brute force timed out after " << tc.elapsed() << "s, checked " << count << " permutations, best: " << best_cost << std::endl;
+            }
+            return best_cost;
+        }
+
         // Calculate cost for this permutation
         // Start from node 0, visit all nodes in permutation order, return to 0
         long long cost = dist[0][nodes[0]];

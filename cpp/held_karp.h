@@ -10,6 +10,6 @@ using DistMatrix = std::vector<std::vector<int>>;
  * Held-Karp algorithm for TSP (dynamic programming)
  * Time: O(n^2 * 2^n), Space: O(n * 2^n)
  */
-int held_karp(const DistMatrix& dist_matrix, bool verbose = false);
+int held_karp(const DistMatrix& dist_matrix, bool verbose = false, double time_limit = 0.0);
 
 #endif
