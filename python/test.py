@@ -6,7 +6,7 @@ import threading
 from brute_force import brute_force_tsp
 from held_karp import held_karp
 from branch_and_bound import branch_and_bound_tsp
-from cplex_solver import cplex_tsp
+from cplex_tsp_solver import cplex_tsp
 
 def run_with_timeout(func, args, timeout=None):
     """Run a function with an optional timeout"""

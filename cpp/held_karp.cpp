@@ -31,14 +31,17 @@ int held_karp(const DistMatrix& dist, bool verbose, double time_limit) {
             }
             return -1;
         }
+
+        if (verbose) {
+            std::cout << "Held-Karp processing subset_size: " << subset_size << std::endl;
+        }
         
-        // Iterate through all masks with exactly subset_size bits set
-        for (int mask = 1; mask < (1 << (n - 1)); mask++) {
-            if (__builtin_popcount(mask) != subset_size) continue;
-            
+        // Iterate through all masks with exactly subset_size bits set (Gosper's hack)
+        int mask = (1 << subset_size) - 1;
+        while (mask < (1 << (n - 1))) {
             // For each node k in this mask
             for (int k = 1; k < n; k++) {
-                if (!(mask & (1 << (k - 1)))) continue;  // k not in mask
+                if (!(mask & (1 << (k - 1)))) continue;  // if k not in mask
                 
                 int prev_mask = mask ^ (1 << (k - 1));
                 
@@ -47,24 +50,18 @@ int held_karp(const DistMatrix& dist, bool verbose, double time_limit) {
                 for (int m = 1; m < n; m++) {
                     if (m == k || !(prev_mask & (1 << (m - 1)))) continue;
                     
-                    if (dp[prev_mask][m] != LLONG_MAX) {
-                        long long cost = dp[prev_mask][m] + dist[m][k];
-                        best = std::min(best, cost);
-                    }
+                    long long cost = dp[prev_mask][m] + dist[m][k];
+                    best = std::min(best, cost);
                 }
                 
-                if (best != LLONG_MAX) {
-                    dp[mask][k] = best;
-                }
+                dp[mask][k] = best;
             }
+            
+            // Gosper's hack: get next mask with same popcount
+            int c = mask & -mask;
+            int r = mask + c;
+            mask = (((r ^ mask) >> 2) / c) | r;
         }
-    }
-    
-    if (tc.time_exceeded()) {
-        if (verbose) {
-            std::cout << "Held-Karp timed out after " << tc.elapsed() << "s at final step" << std::endl;
-        }
-        return -1;
     }
     
     // Final: connect back to node 0
@@ -72,11 +69,9 @@ int held_karp(const DistMatrix& dist, bool verbose, double time_limit) {
     long long best_cost = LLONG_MAX;
     
     for (int k = 1; k < n; k++) {
-        if (dp[full_mask][k] != LLONG_MAX) {
-            long long cost = dp[full_mask][k] + dist[k][0];
-            best_cost = std::min(best_cost, cost);
-        }
+        long long cost = dp[full_mask][k] + dist[k][0];
+        best_cost = std::min(best_cost, cost);
     }
     
-    return (best_cost == LLONG_MAX) ? 0 : (int)best_cost;
+    return (int)best_cost;
 }

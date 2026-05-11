@@ -34,18 +34,16 @@ Checks the cost of all permutations with a fixed starting node
 ### Held Karp
 Builds best tours in subsets and keeps a tally of the total weight, marks visited nodes using bit shifts
 
-### Branch & bound (not implemented)
+### Branch & bound
 Explores the permutation tree while pruning subtrees with a lower bound higher than the current best tour.
 
-### Branch & cut (Linear Programming) (not implemented)
+### Branch & cut (Linear Programming)
 Converts the TSP into a LP problam and iteratively solves that while adding cuts to invalidate subtours. Branches on fractional solutions.
 
 ## Cut constraints
 
-### Dantzig-Fulkerson-Johnson (not implemented)
+### Dantzig-Fulkerson-Johnson
 
 ## Bound finders
 
-### 1-tree (not implemented)
-
-### Minimum spanning tree (not implemented)
+### 1-tree
